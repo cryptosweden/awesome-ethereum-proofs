@@ -1,4 +1,3 @@
-// Submitted by EthereumHistory (ethereumhistory.com)
 contract owned {
     address public owner;
 
@@ -153,10 +152,10 @@ contract MyAdvancedToken is owned, token {
         if (balanceOf[msg.sender] < amount) throw;
         balanceOf[this] += amount;
         balanceOf[msg.sender] -= amount;
-        if (!msg.sender.send(amount * sellPrice)) {
-            throw;
-        } else {
+        if (msg.sender.send(amount * sellPrice)) {
             Transfer(msg.sender, this, amount);
+        } else {
+            throw;
         }
     }
 

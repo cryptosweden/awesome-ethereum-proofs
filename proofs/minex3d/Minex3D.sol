@@ -1,4 +1,5 @@
 // Submitted by EthereumHistory (ethereumhistory.com)
+
 contract owned {
     address public owner;
 
@@ -16,28 +17,29 @@ contract owned {
     }
 }
 
-contract tokenRecipient {
-    function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData);
-}
+contract tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData); }
 
 contract token {
-    string public standard = "VegasCoin 2.1";
+    /* Public variables of the token */
     string public name;
     string public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
 
+    /* This creates an array with all balances */
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
 
+    /* This generates a public event on the blockchain that will notify clients */
     event Transfer(address indexed from, address indexed to, uint256 value);
 
+    /* Initializes contract with initial supply tokens to the creator of the contract */
     function token(
         uint256 initialSupply,
         string tokenName,
         uint8 decimalUnits,
         string tokenSymbol
-    ) {
+        ) {
         balanceOf[msg.sender] = initialSupply;
         totalSupply = initialSupply;
         name = tokenName;
@@ -45,6 +47,7 @@ contract token {
         decimals = decimalUnits;
     }
 
+    /* Send coins */
     function transfer(address _to, uint256 _value) {
         if (balanceOf[msg.sender] < _value) throw;
         if (balanceOf[_to] + _value < balanceOf[_to]) throw;
@@ -53,13 +56,14 @@ contract token {
         Transfer(msg.sender, _to, _value);
     }
 
-    function approve(address _spender, uint256 _value) returns (bool success) {
-        address dummy = _spender;
-        allowance[msg.sender][dummy] = _value;
+    function approve(address _spender, uint256 _value)
+        returns (bool success) {
+        allowance[msg.sender][_spender] = _value;
         return true;
     }
 
-    function approveAndCall(address _spender, uint256 _value, bytes _extraData) returns (bool success) {
+    function approveAndCall(address _spender, uint256 _value, bytes _extraData)
+        returns (bool success) {
         tokenRecipient spender = tokenRecipient(_spender);
         if (approve(_spender, _value)) {
             spender.receiveApproval(msg.sender, _value, this, _extraData);
@@ -83,24 +87,27 @@ contract token {
     }
 }
 
-contract MyAdvancedToken is owned, token {
+contract Minex3D is owned, token {
+
     uint256 public sellPrice;
     uint256 public buyPrice;
-    uint256 public totalSupply;
 
     mapping (address => bool) public frozenAccount;
 
     event FrozenFunds(address target, bool frozen);
 
-    function MyAdvancedToken(
+    function Minex3D(
         uint256 initialSupply,
         string tokenName,
         uint8 decimalUnits,
         string tokenSymbol,
+        uint256 _sellPrice,
+        uint256 _buyPrice,
         address centralMinter
     ) token (initialSupply, tokenName, decimalUnits, tokenSymbol) {
-        if (centralMinter != 0) owner = centralMinter;
-        totalSupply = initialSupply;
+        if(centralMinter != 0 ) owner = centralMinter;
+        sellPrice = _sellPrice;
+        buyPrice = _buyPrice;
     }
 
     function transfer(address _to, uint256 _value) {
@@ -111,6 +118,7 @@ contract MyAdvancedToken is owned, token {
         balanceOf[_to] += _value;
         Transfer(msg.sender, _to, _value);
     }
+
 
     function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
         if (frozenAccount[_from]) throw;
@@ -124,21 +132,21 @@ contract MyAdvancedToken is owned, token {
         return true;
     }
 
-    function mintToken(address target, uint256 mintedAmount) onlyOwner {
-        balanceOf[target] += mintedAmount;
-        totalSupply += mintedAmount;
-        Transfer(0, this, mintedAmount);
-        Transfer(this, target, mintedAmount);
-    }
-
-    function freezeAccount(address target, bool freeze) onlyOwner {
-        frozenAccount[target] = freeze;
-        FrozenFunds(target, freeze);
+    function mintShares(address recipient, uint256 amount) onlyOwner {
+        balanceOf[recipient] += amount;
+        totalSupply += amount;
+        Transfer(0, this, amount);
+        Transfer(this, recipient, amount);
     }
 
     function setPrices(uint256 newSellPrice, uint256 newBuyPrice) onlyOwner {
         sellPrice = newSellPrice;
         buyPrice = newBuyPrice;
+    }
+
+    function freezeAccount(address target, bool freeze) onlyOwner {
+        frozenAccount[target] = freeze;
+        FrozenFunds(target, freeze);
     }
 
     function buy() payable {
@@ -153,14 +161,8 @@ contract MyAdvancedToken is owned, token {
         if (balanceOf[msg.sender] < amount) throw;
         balanceOf[this] += amount;
         balanceOf[msg.sender] -= amount;
-        if (!msg.sender.send(amount * sellPrice)) {
-            throw;
-        } else {
-            Transfer(msg.sender, this, amount);
-        }
-    }
-
-    function transferOwnership(address newOwner) onlyOwner {
-        owner = newOwner;
+        if (!msg.sender.send(amount * sellPrice)) throw;
+        Transfer(msg.sender, this, amount);
+        if (false) {}
     }
 }
